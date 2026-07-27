@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Tiler (MKG. mod) - 画像タイル連結ツール</title>
+    <style>
+        /* Hand-written replacement for the Tailwind CDN build (offline use) */
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; }
+        button, input { font: inherit; color: inherit; }
+        button { cursor: pointer; background: none; border: none; padding: 0; }
+        svg { display: block; vertical-align: middle; }
+        img { max-width: 100%; height: auto; }
+
+        .absolute { position: absolute; }
+        .relative { position: relative; }
+        .inset-0 { inset: 0; }
+        .top-1 { top: .25rem; }
+        .right-1 { right: .25rem; }
+        .z-10 { z-index: 10; }
+
+        .block { display: block; }
+        .flex { display: flex; }
+        .grid { display: grid; }
+        .hidden { display: none; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .gap-2 { gap: .5rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-8 { gap: 2rem; }
+
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+        .w-4 { width: 1rem; }
+        .w-5 { width: 1.25rem; }
+        .w-10 { width: 2.5rem; }
+        .w-full { width: 100%; }
+        .h-2 { height: .5rem; }
+        .h-4 { height: 1rem; }
+        .h-5 { height: 1.25rem; }
+        .h-10 { height: 2.5rem; }
+        .h-auto { height: auto; }
+        .h-full { height: 100%; }
+        .h-fit { height: fit-content; }
+        .aspect-square { aspect-ratio: 1 / 1; }
+        .min-h-screen { min-height: 100vh; }
+        .min-h-\[100px\] { min-height: 100px; }
+        .min-h-\[300px\] { min-height: 300px; }
+        .max-w-6xl { max-width: 72rem; }
+        .max-w-full { max-width: 100%; }
+
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .mb-1 { margin-bottom: .25rem; }
+        .mb-3 { margin-bottom: .75rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .mt-2 { margin-top: .5rem; }
+        .mt-12 { margin-top: 3rem; }
+        .p-1 { padding: .25rem; }
+        .p-4 { padding: 1rem; }
+        .p-6 { padding: 1.5rem; }
+        .p-8 { padding: 2rem; }
+        .px-2 { padding-left: .5rem; padding-right: .5rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .py-1 { padding-top: .25rem; padding-bottom: .25rem; }
+        .py-3 { padding-top: .75rem; padding-bottom: .75rem; }
+        .py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+        .pt-6 { padding-top: 1.5rem; }
+
+        .space-y-4 > * + * { margin-top: 1rem; }
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+        .space-y-8 > * + * { margin-top: 2rem; }
+
+        .border { border: 1px solid #e5e7eb; }
+        .border-2 { border: 2px solid #e5e7eb; }
+        .border-t { border-top: 1px solid #e5e7eb; }
+        .border-dashed { border-style: dashed; }
+        .border-none { border: none; }
+        .border-transparent { border-color: transparent; }
+        .border-gray-100 { border-color: #f3f4f6; }
+        .border-gray-300 { border-color: #d1d5db; }
+        .rounded { border-radius: .25rem; }
+        .rounded-lg { border-radius: .5rem; }
+        .rounded-md { border-radius: .375rem; }
+        .rounded-xl { border-radius: .75rem; }
+        .rounded-2xl { border-radius: 1rem; }
+        .rounded-full { border-radius: 9999px; }
+
+        .bg-gray-50 { background-color: #f9fafb; }
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-gray-200 { background-color: #e5e7eb; }
+        .bg-white { background-color: #fff; }
+        .bg-indigo-600 { background-color: #4f46e5; }
+        .bg-red-500 { background-color: #ef4444; }
+        .bg-black\/40 { background-color: rgba(0, 0, 0, .4); }
+
+        .text-gray-400 { color: #9ca3af; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-900 { color: #111827; }
+        .text-indigo-600 { color: #4f46e5; }
+        .text-white { color: #fff; }
+
+        .font-sans { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .font-normal { font-weight: 400; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+        .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-base { font-size: 1rem; line-height: 1.5rem; }
+        .text-sm { font-size: .875rem; line-height: 1.25rem; }
+        .text-xs { font-size: .75rem; line-height: 1rem; }
+        .uppercase { text-transform: uppercase; }
+        .italic { font-style: italic; }
+        .text-center { text-align: center; }
+
+        .cursor-pointer { cursor: pointer; }
+        .cursor-grab { cursor: grab; }
+        .appearance-none { appearance: none; }
+        .accent-indigo-600 { accent-color: #4f46e5; }
+        .overflow-hidden { overflow: hidden; }
+        .overflow-auto { overflow: auto; }
+        .object-cover { object-fit: cover; }
+        .pointer-events-none { pointer-events: none; }
+        .opacity-0 { opacity: 0; }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .05); }
+        .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .25); }
+        .transition-all { transition: all .15s cubic-bezier(.4, 0, .2, 1); }
+        .transition-colors { transition: color, background-color, border-color .15s cubic-bezier(.4, 0, .2, 1); }
+        .transition-opacity { transition: opacity .15s cubic-bezier(.4, 0, .2, 1); }
+
+        .disabled\:bg-gray-300:disabled { background-color: #d1d5db; }
+        .disabled\:cursor-not-allowed:disabled { cursor: not-allowed; }
+        .hover\:bg-indigo-700:hover { background-color: #4338ca; }
+        .hover\:bg-red-600:hover { background-color: #dc2626; }
+        .hover\:border-indigo-300:hover { border-color: #a5b4fc; }
+
+        .group:hover .group-hover\:border-indigo-400 { border-color: #818cf8; }
+        .group:hover .group-hover\:bg-indigo-50 { background-color: #eef2ff; }
+        .group:hover .group-hover\:opacity-100 { opacity: 1; }
+        .group:hover .group-hover\:text-indigo-500 { color: #6366f1; }
+        .group:hover .group-hover\:text-indigo-600 { color: #4f46e5; }
+
+        @media (min-width: 640px) {
+            .sm\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        @media (min-width: 768px) {
+            .md\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+            .md\:flex-row { flex-direction: row; }
+            .md\:items-center { align-items: center; }
+            .md\:p-8 { padding: 2rem; }
+        }
+        @media (min-width: 1024px) {
+            .lg\:col-span-1 { grid-column: span 1 / span 1; }
+            .lg\:col-span-3 { grid-column: span 3 / span 3; }
+            .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+
+        .drag-over {
+            border-color: #4f46e5 !important;
+            background-color: #eef2ff !important;
+        }
+        .ghost {
+            opacity: 0.5;
+        }
+        #previewContainer {
+            background-image:
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-gray-900">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-indigo-600">Image Tiler <span class="text-base font-normal text-gray-400">MKG. mod</span></h1>
+                <p class="text-gray-500">画像をタイル状に連結して一枚の画像にします(透過を保持)</p>
+            </div>
+            <div class="flex gap-2">
+                <button
+                    id="downloadBtn"
+                    disabled
+                    class="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                >
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+                    画像を保存
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Settings Sidebar -->
+            <aside class="lg:col-span-1 space-y-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
+                <div>
+                    <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>
+                        レイアウト設定
+                    </label>
+
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-xs text-gray-500">列数 (Columns)</span>
+                                <span id="colValue" class="text-xs font-bold">3</span>
+                            </div>
+                            <input
+                                id="colInput" type="range" min="1" max="10" value="3"
+                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-xs text-gray-500">余白 (Padding)</span>
+                                <span id="padValue" class="text-xs font-bold">10px</span>
+                            </div>
+                            <input
+                                id="padInput" type="range" min="0" max="100" value="10"
+                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                        </div>
+
+                        <div>
+                            <span class="text-xs text-gray-500 mb-1 block">アラインメント</span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <select id="hAlignInput" class="w-full p-1 border border-gray-300 rounded-md text-sm bg-white">
+                                    <option value="start">左揃え</option>
+                                    <option value="center" selected>中央揃え</option>
+                                    <option value="end">右揃え</option>
+                                </select>
+                                <select id="vAlignInput" class="w-full p-1 border border-gray-300 rounded-md text-sm bg-white">
+                                    <option value="start">上揃え</option>
+                                    <option value="center" selected>中央揃え</option>
+                                    <option value="end">下揃え</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-xs text-gray-500 mb-1 block">背景色</span>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    id="bgInput" type="color" value="#ffffff"
+                                    class="w-10 h-10 rounded cursor-pointer border-none"
+                                />
+                                <span id="bgHex" class="text-sm font-mono uppercase">#FFFFFF</span>
+                            </div>
+                            <label class="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                                <input id="bgTransparentInput" type="checkbox" class="accent-indigo-600" />
+                                余白を透明にする
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-gray-100">
+                    <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+                        画像の追加
+                    </label>
+                    <div class="relative group">
+                        <input
+                            id="fileInput" type="file" multiple accept="image/*"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div id="dropZoneBox" class="p-4 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 group-hover:border-indigo-400 group-hover:bg-indigo-50 transition-all">
+                            <svg width="24" height="24" class="text-gray-400 group-hover:text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            <span class="text-xs text-gray-500 group-hover:text-indigo-600">ファイルを選択 / ドラッグ＆ドロップ</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Workspace -->
+            <main class="lg:col-span-3 space-y-8">
+                <!-- Image Manager -->
+                <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                        選択中の画像 <span id="imageCount" class="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full">0</span>
+                    </h2>
+                    <div id="imageList" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 min-h-[100px]">
+                        <!-- Images will be injected here -->
+                    </div>
+                    <div id="emptyMessage" class="py-12 text-center text-gray-400 italic hidden">
+                        画像が選択されていません
+                    </div>
+                </section>
+
+                <!-- Preview Section -->
+                <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-bold mb-4">プレビュー</h2>
+                    <div class="w-full overflow-auto rounded-xl min-h-[300px] flex items-center justify-center p-8">
+                        <div id="previewContainer" class="flex items-center justify-center w-full rounded-lg">
+                            <p id="previewPlaceholder" class="text-gray-400 text-center">画像を追加するとここにプレビューが表示されます</p>
+                            <img id="previewImage" class="hidden shadow-2xl max-w-full h-auto" alt="Preview Result" />
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Hidden canvas for processing -->
+    <canvas id="tileCanvas" class="hidden"></canvas>
+
+    <footer class="mt-12 text-center text-gray-400 text-sm">
+        画像をドラッグして順序を入れ替えられます • サイドバーで列数や余白を調整してください
+    </footer>
+
+    <script>
+        // --- State Management ---
+        let images = []; // Array of { id, url, name }
+        let columns = 3;
+        let padding = 10;
+        let bgColor = '#ffffff';
+        let bgTransparent = false;
+        let hAlign = 'center'; // 'start' | 'center' | 'end'
+        let vAlign = 'center'; // 'start' | 'center' | 'end'
+
+        // --- DOM Elements ---
+        const fileInput = document.getElementById('fileInput');
+        const dropZoneBox = document.getElementById('dropZoneBox');
+        const imageList = document.getElementById('imageList');
+        const emptyMessage = document.getElementById('emptyMessage');
+        const imageCount = document.getElementById('imageCount');
+        const colInput = document.getElementById('colInput');
+        const colValue = document.getElementById('colValue');
+        const padInput = document.getElementById('padInput');
+        const padValue = document.getElementById('padValue');
+        const hAlignInput = document.getElementById('hAlignInput');
+        const vAlignInput = document.getElementById('vAlignInput');
+        const bgInput = document.getElementById('bgInput');
+        const bgHex = document.getElementById('bgHex');
+        const bgTransparentInput = document.getElementById('bgTransparentInput');
+        const previewImage = document.getElementById('previewImage');
+        const previewPlaceholder = document.getElementById('previewPlaceholder');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const canvas = document.getElementById('tileCanvas');
+
+        // --- Event Listeners ---
+        function addImageFiles(fileList) {
+            const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+            files.forEach(file => {
+                const url = URL.createObjectURL(file);
+                images.push({
+                    id: Math.random().toString(36).substr(2, 9),
+                    url: url,
+                    name: file.name
+                });
+            });
+            if (files.length > 0) updateUI();
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            addImageFiles(e.target.files);
+            fileInput.value = '';
+        });
+
+        // Dropping files anywhere on the page adds them, instead of the
+        // browser's default action of navigating to the dropped image.
+        // Internal thumbnail-reorder drags don't carry a "Files" type, so
+        // they're ignored here and left to their own dragstart/drop handlers.
+        function isFileDrag(e) {
+            return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+        }
+
+        let dragCounter = 0;
+        window.addEventListener('dragenter', (e) => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+            dragCounter++;
+            dropZoneBox.classList.add('drag-over');
+        });
+        window.addEventListener('dragover', (e) => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+        });
+        window.addEventListener('dragleave', (e) => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter <= 0) {
+                dragCounter = 0;
+                dropZoneBox.classList.remove('drag-over');
+            }
+        });
+        window.addEventListener('drop', (e) => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+            dragCounter = 0;
+            dropZoneBox.classList.remove('drag-over');
+            addImageFiles(e.dataTransfer.files);
+        });
+
+        colInput.addEventListener('input', (e) => {
+            columns = parseInt(e.target.value);
+            colValue.innerText = columns;
+            generateTile();
+        });
+
+        padInput.addEventListener('input', (e) => {
+            padding = parseInt(e.target.value);
+            padValue.innerText = padding + 'px';
+            generateTile();
+        });
+
+        hAlignInput.addEventListener('change', (e) => {
+            hAlign = e.target.value;
+            generateTile();
+        });
+
+        vAlignInput.addEventListener('change', (e) => {
+            vAlign = e.target.value;
+            generateTile();
+        });
+
+        bgInput.addEventListener('input', (e) => {
+            bgColor = e.target.value;
+            bgHex.innerText = bgColor.toUpperCase();
+            generateTile();
+        });
+
+        bgTransparentInput.addEventListener('change', (e) => {
+            bgTransparent = e.target.checked;
+            bgInput.disabled = bgTransparent;
+            generateTile();
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (!previewImage.src) return;
+            const link = document.createElement('a');
+            link.download = 'tiled_image.png';
+            link.href = previewImage.src;
+            link.click();
+        });
+
+        // --- UI Rendering ---
+        function updateUI() {
+            imageList.innerHTML = '';
+            imageCount.innerText = images.length;
+
+            if (images.length === 0) {
+                emptyMessage.classList.remove('hidden');
+                previewImage.classList.add('hidden');
+                previewPlaceholder.classList.remove('hidden');
+                downloadBtn.disabled = true;
+                return;
+            }
+
+            emptyMessage.classList.add('hidden');
+
+            images.forEach((img, index) => {
+                const div = document.createElement('div');
+                div.className = 'relative group aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-indigo-300 shadow-sm transition-all cursor-grab';
+                div.draggable = true;
+                div.dataset.index = index;
+
+                div.innerHTML = `
+                    <img src="${img.url}" class="w-full h-full object-cover pointer-events-none" />
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+                        <svg width="24" height="24" class="text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+                    </div>
+                    <button class="remove-btn absolute top-1 right-1 p-1 bg-red-500 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600" data-id="${img.id}">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                `;
+
+                // Drag and Drop Events
+                div.addEventListener('dragstart', handleDragStart);
+                div.addEventListener('dragover', handleDragOver);
+                div.addEventListener('drop', handleDrop);
+                div.addEventListener('dragend', handleDragEnd);
+
+                // Remove Button
+                div.querySelector('.remove-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    images = images.filter(i => i.id !== img.id);
+                    updateUI();
+                });
+
+                imageList.appendChild(div);
+            });
+
+            generateTile();
+        }
+
+        // --- Drag and Drop Logic ---
+        let draggedIndex = null;
+
+        function handleDragStart(e) {
+            draggedIndex = parseInt(this.dataset.index);
+            this.classList.add('ghost');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            const targetIndex = parseInt(this.dataset.index);
+
+            if (draggedIndex === targetIndex) return;
+
+            const temp = images[draggedIndex];
+            images.splice(draggedIndex, 1);
+            images.splice(targetIndex, 0, temp);
+            updateUI();
+        }
+
+        function handleDragEnd() {
+            this.classList.remove('ghost');
+            const allItems = imageList.querySelectorAll('.drag-over');
+            allItems.forEach(item => item.classList.remove('drag-over'));
+        }
+
+        // --- Image Tiling Logic ---
+        function getOffset(cellSize, imgSize, align) {
+            if (align === 'start') return 0;
+            if (align === 'end') return cellSize - imgSize;
+            return (cellSize - imgSize) / 2;
+        }
+
+        async function generateTile() {
+            if (images.length === 0) return;
+
+            const ctx = canvas.getContext('2d');
+
+            // Load all images
+            const imgElements = await Promise.all(images.map(img => {
+                return new Promise((resolve) => {
+                    const i = new Image();
+                    i.onload = () => resolve(i);
+                    i.src = img.url;
+                });
+            }));
+
+            // Calculate grid dimensions
+            const maxWidth = Math.max(...imgElements.map(img => img.width));
+            const maxHeight = Math.max(...imgElements.map(img => img.height));
+            const rows = Math.ceil(imgElements.length / columns);
+
+            canvas.width = (maxWidth * columns) + (padding * (columns + 1));
+            canvas.height = (maxHeight * rows) + (padding * (rows + 1));
+
+            // Resizing the canvas already clears it to fully transparent, so
+            // this fill only needs to cover the padding/letterbox gaps.
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!bgTransparent) {
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Draw each
+            imgElements.forEach((img, index) => {
+                const col = index % columns;
+                const row = Math.floor(index / columns);
+
+                const x = padding + (col * (maxWidth + padding));
+                const y = padding + (row * (maxHeight + padding));
+
+                const offsetX = getOffset(maxWidth, img.width, hAlign);
+                const offsetY = getOffset(maxHeight, img.height, vAlign);
+
+                // Clear the image's own footprint before drawing so its alpha
+                // channel survives instead of being flattened onto bgColor.
+                ctx.clearRect(x + offsetX, y + offsetY, img.width, img.height);
+                ctx.drawImage(img, x + offsetX, y + offsetY);
+            });
+
+            const dataUrl = canvas.toDataURL('image/png');
+            previewImage.src = dataUrl;
+            previewImage.classList.remove('hidden');
+            previewPlaceholder.classList.add('hidden');
+            downloadBtn.disabled = false;
+        }
+
+        // Initial setup
+        updateUI();
+
+    </script>
+</body>
+</html>

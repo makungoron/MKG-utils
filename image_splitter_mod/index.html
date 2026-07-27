@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Splitter - 画像分割ツール</title>
+    <style>
+        /* Hand-written utility CSS (no CDN, works fully offline) */
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; }
+        button, input { font: inherit; color: inherit; }
+        button { cursor: pointer; background: none; border: none; padding: 0; }
+        svg { display: block; vertical-align: middle; }
+        img, canvas { max-width: 100%; height: auto; }
+
+        .absolute { position: absolute; }
+        .relative { position: relative; }
+        .inset-0 { inset: 0; }
+        .z-10 { z-index: 10; }
+
+        .block { display: block; }
+        .flex { display: flex; }
+        .grid { display: grid; }
+        .hidden { display: none; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .gap-2 { gap: .5rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-8 { gap: 2rem; }
+
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+
+        .w-4 { width: 1rem; }
+        .w-5 { width: 1.25rem; }
+        .w-full { width: 100%; }
+        .h-2 { height: .5rem; }
+        .h-4 { height: 1rem; }
+        .h-5 { height: 1.25rem; }
+        .h-full { height: 100%; }
+        .h-fit { height: fit-content; }
+        .min-h-screen { min-height: 100vh; }
+        .min-h-\[300px\] { min-height: 300px; }
+        .max-w-6xl { max-width: 72rem; }
+        .max-w-full { max-width: 100%; }
+
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .mb-1 { margin-bottom: .25rem; }
+        .mb-3 { margin-bottom: .75rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .mt-12 { margin-top: 3rem; }
+        .p-4 { padding: 1rem; }
+        .p-6 { padding: 1.5rem; }
+        .p-8 { padding: 2rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .py-3 { padding-top: .75rem; padding-bottom: .75rem; }
+        .pt-6 { padding-top: 1.5rem; }
+
+        .space-y-4 > * + * { margin-top: 1rem; }
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+        .space-y-8 > * + * { margin-top: 2rem; }
+
+        .border { border: 1px solid #e5e7eb; }
+        .border-2 { border: 2px solid #e5e7eb; }
+        .border-t { border-top: 1px solid #e5e7eb; }
+        .border-dashed { border-style: dashed; }
+        .border-gray-100 { border-color: #f3f4f6; }
+        .border-gray-300 { border-color: #d1d5db; }
+        .rounded { border-radius: .25rem; }
+        .rounded-lg { border-radius: .5rem; }
+        .rounded-xl { border-radius: .75rem; }
+        .rounded-2xl { border-radius: 1rem; }
+
+        .bg-gray-50 { background-color: #f9fafb; }
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-gray-200 { background-color: #e5e7eb; }
+        .bg-white { background-color: #fff; }
+        .bg-indigo-600 { background-color: #4f46e5; }
+
+        .text-gray-400 { color: #9ca3af; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-900 { color: #111827; }
+        .text-indigo-600 { color: #4f46e5; }
+        .text-white { color: #fff; }
+
+        .font-sans { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+        .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-sm { font-size: .875rem; line-height: 1.25rem; }
+        .text-xs { font-size: .75rem; line-height: 1rem; }
+        .italic { font-style: italic; }
+        .text-center { text-align: center; }
+
+        .cursor-pointer { cursor: pointer; }
+        .appearance-none { appearance: none; }
+        .accent-indigo-600 { accent-color: #4f46e5; }
+        .overflow-auto { overflow: auto; }
+        .opacity-0 { opacity: 0; }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .05); }
+        .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, .25); }
+        .transition-all { transition: all .15s cubic-bezier(.4, 0, .2, 1); }
+        .transition-colors { transition: color, background-color, border-color .15s cubic-bezier(.4, 0, .2, 1); }
+
+        .disabled\:bg-gray-300:disabled { background-color: #d1d5db; }
+        .disabled\:cursor-not-allowed:disabled { cursor: not-allowed; }
+        .hover\:bg-indigo-700:hover { background-color: #4338ca; }
+
+        .group:hover .group-hover\:border-indigo-400 { border-color: #818cf8; }
+        .group:hover .group-hover\:bg-indigo-50 { background-color: #eef2ff; }
+        .group:hover .group-hover\:text-indigo-500 { color: #6366f1; }
+        .group:hover .group-hover\:text-indigo-600 { color: #4f46e5; }
+
+        @media (min-width: 768px) {
+            .md\:flex-row { flex-direction: row; }
+            .md\:items-center { align-items: center; }
+            .md\:p-8 { padding: 2rem; }
+        }
+        @media (min-width: 1024px) {
+            .lg\:col-span-1 { grid-column: span 1 / span 1; }
+            .lg\:col-span-3 { grid-column: span 3 / span 3; }
+            .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+
+        .drag-over {
+            border-color: #4f46e5 !important;
+            background-color: #eef2ff !important;
+        }
+        #previewContainer {
+            background-image:
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-gray-900">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-indigo-600">Image Splitter</h1>
+                <p class="text-gray-500">1枚の画像を格子状に分割し、まとめてZIPで保存します</p>
+            </div>
+            <div class="flex gap-2">
+                <button
+                    id="downloadBtn"
+                    disabled
+                    class="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                >
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+                    分割してZIPを保存
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Settings Sidebar -->
+            <aside class="lg:col-span-1 space-y-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
+                <div>
+                    <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>
+                        分割設定
+                    </label>
+
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-xs text-gray-500">列数 (X)</span>
+                                <span id="colValue" class="text-xs font-bold">3</span>
+                            </div>
+                            <input
+                                id="colInput" type="range" min="1" max="20" value="3"
+                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-xs text-gray-500">行数 (Y)</span>
+                                <span id="rowValue" class="text-xs font-bold">3</span>
+                            </div>
+                            <input
+                                id="rowInput" type="range" min="1" max="20" value="3"
+                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                        </div>
+
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>分割枚数</span>
+                            <span id="pieceCount" class="font-bold text-gray-900">9</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-gray-100">
+                    <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>
+                        画像の選択
+                    </label>
+                    <div class="relative group">
+                        <input
+                            id="fileInput" type="file" accept="image/*"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div id="dropZoneBox" class="p-4 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 group-hover:border-indigo-400 group-hover:bg-indigo-50 transition-all">
+                            <svg width="24" height="24" class="text-gray-400 group-hover:text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            <span id="fileLabel" class="text-xs text-gray-500 group-hover:text-indigo-600">ファイルを選択 / ドラッグ＆ドロップ</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Workspace -->
+            <main class="lg:col-span-3 space-y-8">
+                <section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-bold mb-4">プレビュー(分割ライン)</h2>
+                    <div class="w-full overflow-auto bg-gray-200 rounded-xl min-h-[300px] flex items-center justify-center p-8">
+                        <div id="previewContainer" class="flex items-center justify-center w-full rounded-lg">
+                            <p id="previewPlaceholder" class="text-gray-400 text-center">画像を選択するとここにプレビューが表示されます</p>
+                            <canvas id="previewCanvas" class="hidden shadow-2xl"></canvas>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Hidden canvas for cutting out each piece -->
+    <canvas id="cutCanvas" class="hidden"></canvas>
+
+    <footer class="mt-12 text-center text-gray-400 text-sm">
+        piece0, piece1... の順に、左上から右へ、行ごとに上から下へ番号が振られます
+    </footer>
+
+    <script>
+        // --- State ---
+        let loadedImage = null;
+        let baseName = 'image';
+        let columns = 3;
+        let rows = 3;
+
+        // --- DOM Elements ---
+        const fileInput = document.getElementById('fileInput');
+        const fileLabel = document.getElementById('fileLabel');
+        const dropZoneBox = document.getElementById('dropZoneBox');
+        const colInput = document.getElementById('colInput');
+        const colValue = document.getElementById('colValue');
+        const rowInput = document.getElementById('rowInput');
+        const rowValue = document.getElementById('rowValue');
+        const pieceCount = document.getElementById('pieceCount');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewPlaceholder = document.getElementById('previewPlaceholder');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const cutCanvas = document.getElementById('cutCanvas');
+
+        // --- Event Listeners ---
+        function loadImageFile(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            baseName = file.name.replace(/\.[^/.]+$/, '') || 'image';
+            fileLabel.innerText = file.name;
+
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                loadedImage = img;
+                downloadBtn.disabled = false;
+                renderPreview();
+            };
+            img.src = url;
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            loadImageFile(e.target.files[0]);
+        });
+
+        // Dropping a file anywhere on the page loads it, instead of the
+        // browser's default action of navigating to the dropped image.
+        function isFileDrag(e) {
+            return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+        }
+
+        let dragCounter = 0;
+        window.addEventListener('dragenter', (e) => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+            dragCounter++;
+            dropZoneBox.classList.add('drag-over');
+        });
+        window.addEventListener('dragover', (e) => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+        });
+        window.addEventListener('dragleave', (e) => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter <= 0) {
+                dragCounter = 0;
+                dropZoneBox.classList.remove('drag-over');
+            }
+        });
+        window.addEventListener('drop', (e) => {
+            if (!isFileDrag(e)) return;
+            e.preventDefault();
+            dragCounter = 0;
+            dropZoneBox.classList.remove('drag-over');
+            loadImageFile(e.dataTransfer.files[0]);
+        });
+
+        colInput.addEventListener('input', (e) => {
+            columns = parseInt(e.target.value);
+            colValue.innerText = columns;
+            renderPreview();
+        });
+
+        rowInput.addEventListener('input', (e) => {
+            rows = parseInt(e.target.value);
+            rowValue.innerText = rows;
+            renderPreview();
+        });
+
+        downloadBtn.addEventListener('click', splitAndDownload);
+
+        // --- Preview Rendering ---
+        function renderPreview() {
+            pieceCount.innerText = columns * rows;
+            if (!loadedImage) return;
+
+            previewPlaceholder.classList.add('hidden');
+            previewCanvas.classList.remove('hidden');
+
+            previewCanvas.width = loadedImage.naturalWidth;
+            previewCanvas.height = loadedImage.naturalHeight;
+            const ctx = previewCanvas.getContext('2d');
+            ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            ctx.drawImage(loadedImage, 0, 0);
+
+            // Grid lines are just an even-fraction overlay for visual guidance;
+            // the actual export uses pixel-rounded boundaries (see splitBoundaries).
+            const lineWidth = Math.max(2, Math.round(loadedImage.naturalWidth / 400));
+            ctx.strokeStyle = 'rgba(79, 70, 229, 0.85)';
+            ctx.lineWidth = lineWidth;
+            for (let i = 1; i < columns; i++) {
+                const x = Math.round(i * previewCanvas.width / columns);
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, previewCanvas.height);
+                ctx.stroke();
+            }
+            for (let j = 1; j < rows; j++) {
+                const y = Math.round(j * previewCanvas.height / rows);
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(previewCanvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        // --- Splitting Logic ---
+        // Evenly distributes any remainder pixels across cells instead of
+        // dropping them, so every source pixel ends up in exactly one piece.
+        function splitBoundaries(total, count) {
+            const bounds = [];
+            for (let i = 0; i <= count; i++) bounds.push(Math.round(i * total / count));
+            return bounds;
+        }
+
+        async function splitAndDownload() {
+            if (!loadedImage) return;
+            downloadBtn.disabled = true;
+
+            try {
+                const xBounds = splitBoundaries(loadedImage.naturalWidth, columns);
+                const yBounds = splitBoundaries(loadedImage.naturalHeight, rows);
+                const total = columns * rows;
+                const pad = String(total - 1).length;
+                const cutCtx = cutCanvas.getContext('2d');
+
+                const pieces = [];
+                let idx = 0;
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < columns; col++) {
+                        const sx = xBounds[col];
+                        const sy = yBounds[row];
+                        const sw = xBounds[col + 1] - sx;
+                        const sh = yBounds[row + 1] - sy;
+
+                        cutCanvas.width = sw;
+                        cutCanvas.height = sh;
+                        cutCtx.clearRect(0, 0, sw, sh);
+                        cutCtx.drawImage(loadedImage, sx, sy, sw, sh, 0, 0, sw, sh);
+
+                        const blob = await new Promise(resolve => cutCanvas.toBlob(resolve, 'image/png'));
+                        pieces.push({ name: `piece${String(idx).padStart(pad, '0')}.png`, blob });
+                        idx++;
+                    }
+                }
+
+                const zipBlob = await buildZip(pieces);
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${baseName}_pieces.zip`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } finally {
+                downloadBtn.disabled = false;
+            }
+        }
+
+        // --- Minimal ZIP writer (store method, no compression needed for PNGs) ---
+        const CRC_TABLE = (() => {
+            const table = new Uint32Array(256);
+            for (let n = 0; n < 256; n++) {
+                let c = n;
+                for (let k = 0; k < 8; k++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                table[n] = c >>> 0;
+            }
+            return table;
+        })();
+
+        function crc32(bytes) {
+            let crc = 0xFFFFFFFF;
+            for (let i = 0; i < bytes.length; i++) {
+                crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ bytes[i]) & 0xFF];
+            }
+            return (crc ^ 0xFFFFFFFF) >>> 0;
+        }
+
+        function toDosTime(date) {
+            return ((date.getHours() & 0x1F) << 11) | ((date.getMinutes() & 0x3F) << 5) | ((date.getSeconds() >> 1) & 0x1F);
+        }
+
+        function toDosDate(date) {
+            return (((date.getFullYear() - 1980) & 0x7F) << 9) | (((date.getMonth() + 1) & 0xF) << 5) | (date.getDate() & 0x1F);
+        }
+
+        function concatUint8Arrays(arrays) {
+            const total = arrays.reduce((sum, a) => sum + a.length, 0);
+            const out = new Uint8Array(total);
+            let offset = 0;
+            for (const a of arrays) {
+                out.set(a, offset);
+                offset += a.length;
+            }
+            return out;
+        }
+
+        function makeLocalHeader(nameLength, crc, size, dosTime, dosDate) {
+            const view = new DataView(new ArrayBuffer(30));
+            view.setUint32(0, 0x04034b50, true);
+            view.setUint16(4, 20, true);
+            view.setUint16(6, 0, true);
+            view.setUint16(8, 0, true); // store, no compression
+            view.setUint16(10, dosTime, true);
+            view.setUint16(12, dosDate, true);
+            view.setUint32(14, crc, true);
+            view.setUint32(18, size, true);
+            view.setUint32(22, size, true);
+            view.setUint16(26, nameLength, true);
+            view.setUint16(28, 0, true);
+            return new Uint8Array(view.buffer);
+        }
+
+        function makeCentralHeader(nameLength, crc, size, dosTime, dosDate, localOffset) {
+            const view = new DataView(new ArrayBuffer(46));
+            view.setUint32(0, 0x02014b50, true);
+            view.setUint16(4, 20, true);
+            view.setUint16(6, 20, true);
+            view.setUint16(8, 0, true);
+            view.setUint16(10, 0, true);
+            view.setUint16(12, dosTime, true);
+            view.setUint16(14, dosDate, true);
+            view.setUint32(16, crc, true);
+            view.setUint32(20, size, true);
+            view.setUint32(24, size, true);
+            view.setUint16(28, nameLength, true);
+            view.setUint16(30, 0, true);
+            view.setUint16(32, 0, true);
+            view.setUint16(34, 0, true);
+            view.setUint16(36, 0, true);
+            view.setUint32(38, 0, true);
+            view.setUint32(42, localOffset, true);
+            return new Uint8Array(view.buffer);
+        }
+
+        function makeEndRecord(entryCount, centralSize, centralOffset) {
+            const view = new DataView(new ArrayBuffer(22));
+            view.setUint32(0, 0x06054b50, true);
+            view.setUint16(4, 0, true);
+            view.setUint16(6, 0, true);
+            view.setUint16(8, entryCount, true);
+            view.setUint16(10, entryCount, true);
+            view.setUint32(12, centralSize, true);
+            view.setUint32(16, centralOffset, true);
+            view.setUint16(20, 0, true);
+            return new Uint8Array(view.buffer);
+        }
+
+        async function buildZip(pieces) {
+            const encoder = new TextEncoder();
+            const now = new Date();
+            const dosTime = toDosTime(now);
+            const dosDate = toDosDate(now);
+
+            const localChunks = [];
+            const centralChunks = [];
+            let offset = 0;
+
+            for (const piece of pieces) {
+                const nameBytes = encoder.encode(piece.name);
+                const data = new Uint8Array(await piece.blob.arrayBuffer());
+                const crc = crc32(data);
+
+                const localHeader = makeLocalHeader(nameBytes.length, crc, data.length, dosTime, dosDate);
+                localChunks.push(localHeader, nameBytes, data);
+
+                const centralHeader = makeCentralHeader(nameBytes.length, crc, data.length, dosTime, dosDate, offset);
+                centralChunks.push(centralHeader, nameBytes);
+
+                offset += localHeader.length + nameBytes.length + data.length;
+            }
+
+            const centralBytes = concatUint8Arrays(centralChunks);
+            const endRecord = makeEndRecord(pieces.length, centralBytes.length, offset);
+            const finalBytes = concatUint8Arrays([...localChunks, centralBytes, endRecord]);
+            return new Blob([finalBytes], { type: 'application/zip' });
+        }
+    </script>
+</body>
+</html>
