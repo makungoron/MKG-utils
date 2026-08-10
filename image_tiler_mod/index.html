@@ -189,6 +189,10 @@
                 <p class="text-gray-500">画像をタイル状に連結して一枚の画像にします(透過を保持)</p>
             </div>
             <div class="flex gap-2">
+                <input
+                    id="filenameInput" type="text" placeholder="tiled_image.png"
+                    class="px-3 py-1 border border-gray-300 rounded-lg text-sm bg-white w-40 md:w-56"
+                />
                 <button
                     id="downloadBtn"
                     disabled
@@ -216,7 +220,7 @@
                                 <span id="colValue" class="text-xs font-bold">3</span>
                             </div>
                             <input
-                                id="colInput" type="range" min="1" max="10" value="3"
+                                id="colInput" type="range" min="1" max="20" value="3"
                                 class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                             />
                         </div>
@@ -224,10 +228,10 @@
                         <div>
                             <div class="flex justify-between mb-1">
                                 <span class="text-xs text-gray-500">余白 (Padding)</span>
-                                <span id="padValue" class="text-xs font-bold">10px</span>
+                                <span id="padValue" class="text-xs font-bold">0px</span>
                             </div>
                             <input
-                                id="padInput" type="range" min="0" max="100" value="10"
+                                id="padInput" type="range" min="0" max="100" value="0"
                                 class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                             />
                         </div>
@@ -252,13 +256,13 @@
                             <span class="text-xs text-gray-500 mb-1 block">背景色</span>
                             <div class="flex items-center gap-2">
                                 <input
-                                    id="bgInput" type="color" value="#ffffff"
+                                    id="bgInput" type="color" value="#ffffff" disabled
                                     class="w-10 h-10 rounded cursor-pointer border-none"
                                 />
                                 <span id="bgHex" class="text-sm font-mono uppercase">#FFFFFF</span>
                             </div>
                             <label class="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                                <input id="bgTransparentInput" type="checkbox" class="accent-indigo-600" />
+                                <input id="bgTransparentInput" type="checkbox" checked class="accent-indigo-600" />
                                 余白を透明にする
                             </label>
                         </div>
@@ -323,9 +327,9 @@
         // --- State Management ---
         let images = []; // Array of { id, url, name }
         let columns = 3;
-        let padding = 10;
+        let padding = 0;
         let bgColor = '#ffffff';
-        let bgTransparent = false;
+        let bgTransparent = true;
         let hAlign = 'center'; // 'start' | 'center' | 'end'
         let vAlign = 'center'; // 'start' | 'center' | 'end'
 
@@ -347,7 +351,9 @@
         const previewImage = document.getElementById('previewImage');
         const previewPlaceholder = document.getElementById('previewPlaceholder');
         const downloadBtn = document.getElementById('downloadBtn');
+        const filenameInput = document.getElementById('filenameInput');
         const canvas = document.getElementById('tileCanvas');
+        const DEFAULT_FILENAME = 'tiled_image.png';
 
         // --- Event Listeners ---
         function addImageFiles(fileList) {
@@ -438,10 +444,20 @@
             generateTile();
         });
 
+        // Uses the user-entered name as-is when possible, only stripping
+        // characters that are invalid in filenames and adding .png if missing.
+        function resolveFilename() {
+            const raw = filenameInput.value.trim();
+            if (!raw) return DEFAULT_FILENAME;
+            const safe = raw.replace(/[\\/:*?"<>|]/g, '_');
+            if (!safe) return DEFAULT_FILENAME;
+            return /\.png$/i.test(safe) ? safe : `${safe}.png`;
+        }
+
         downloadBtn.addEventListener('click', () => {
             if (!previewImage.src) return;
             const link = document.createElement('a');
-            link.download = 'tiled_image.png';
+            link.download = resolveFilename();
             link.href = previewImage.src;
             link.click();
         });
