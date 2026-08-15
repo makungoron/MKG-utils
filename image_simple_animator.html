@@ -136,6 +136,22 @@
             border-color: #4f46e5 !important;
             background-color: #eef2ff !important;
         }
+        .value-input {
+            width: 3.5rem;
+            text-align: right;
+            font-weight: 700;
+            font-size: .75rem;
+            color: inherit;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: .25rem;
+            padding: .125rem .375rem;
+        }
+        .value-input:focus {
+            outline: 2px solid #4f46e5;
+            outline-offset: 1px;
+            border-color: #4f46e5;
+        }
         #previewContainer, #mapContainer {
             background-image:
                 linear-gradient(45deg, #ccc 25%, transparent 25%),
@@ -199,7 +215,7 @@
                         <div>
                             <div class="flex justify-between mb-1">
                                 <span class="text-xs text-gray-500">列数 (X)</span>
-                                <span id="colValue" class="text-xs font-bold">3</span>
+                                <input id="colValue" type="number" min="1" step="1" value="3" class="value-input" />
                             </div>
                             <input
                                 id="colInput" type="range" min="1" max="20" value="3"
@@ -210,7 +226,7 @@
                         <div>
                             <div class="flex justify-between mb-1">
                                 <span class="text-xs text-gray-500">行数 (Y)</span>
-                                <span id="rowValue" class="text-xs font-bold">1</span>
+                                <input id="rowValue" type="number" min="1" step="1" value="1" class="value-input" />
                             </div>
                             <input
                                 id="rowInput" type="range" min="1" max="20" value="1"
@@ -393,15 +409,39 @@
         });
 
         // --- Tile Settings ---
-        colInput.addEventListener('input', (e) => {
-            columns = parseInt(e.target.value);
-            colValue.innerText = columns;
+        // Keeps a range slider and its editable number field in sync. The
+        // number field has no upper bound, so once its value exceeds the
+        // slider's max, the slider just pins at max while the number field
+        // keeps the real value.
+        function bindCountControl(rangeEl, numberEl, min, onChange) {
+            const rangeMax = parseInt(rangeEl.max, 10);
+            rangeEl.addEventListener('input', () => {
+                const v = parseInt(rangeEl.value, 10);
+                numberEl.value = v;
+                onChange(v);
+            });
+            numberEl.addEventListener('input', () => {
+                const v = parseInt(numberEl.value, 10);
+                if (!Number.isFinite(v) || v < min) return;
+                rangeEl.value = Math.min(v, rangeMax);
+                onChange(v);
+            });
+            numberEl.addEventListener('change', () => {
+                let v = parseInt(numberEl.value, 10);
+                if (!Number.isFinite(v) || v < min) v = min;
+                numberEl.value = v;
+                rangeEl.value = Math.min(v, rangeMax);
+                onChange(v);
+            });
+        }
+
+        bindCountControl(colInput, colValue, 1, (v) => {
+            columns = v;
             onGridChange();
         });
 
-        rowInput.addEventListener('input', (e) => {
-            rows = parseInt(e.target.value);
-            rowValue.innerText = rows;
+        bindCountControl(rowInput, rowValue, 1, (v) => {
+            rows = v;
             onGridChange();
         });
 
